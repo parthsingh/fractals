@@ -11,13 +11,15 @@ import julia
 # Initial parameters
 initial_r = -0.7
 initial_i = 0.27015
+initial_cmap = 'magma'
 
 # Setup the plot
 fig, ax = plt.subplots(figsize=(10, 6))
 plt.subplots_adjust(left=0.1, bottom=0.25, right=0.8, top=0.9)
 
 # Initial plot with a lower resolution for live updates
-iterations = mandelbrot_plot_set(500, 500)
+c = complex(initial_r, initial_i)
+iterations = julia.julia_plot_set(1000, 1000, c)
 img = plt.imshow(iterations, extent=[-2, 2, -2, 2], cmap='magma')
 ax.margins(x=0)
 
@@ -29,10 +31,16 @@ cbar.set_label('Iterations')
 axcolor = 'lightgoldenrodyellow'
 ax_r = plt.axes([0.1, 0.1, 0.5, 0.03], facecolor=axcolor)
 ax_i = plt.axes([0.1, 0.05, 0.5, 0.03], facecolor=axcolor)
+ax_cmap = plt.axes([0.1, 0.00, 0.5, 0.03], facecolor=axcolor)
 
 # Sliders
 s_r = Slider(ax_r, 'Real', -2.0, 2.0, valinit=initial_r)
 s_i = Slider(ax_i, 'Imaginary', -2.0, 2.0, valinit=initial_i)
+
+# Cmap Selection
+cmap_list = ['viridis', 'plasma', 'inferno', 'magma', 'cividis','twilight_shifted','gist_earth','ocean','pink','prism','tab10','cubehelix','jet','coolwarm','brg']
+initial_cmap_index = cmap_list.index(initial_cmap)
+s_cmap = Slider(ax_cmap, 'Colormap', 0, len(cmap_list) - 1, valinit=initial_cmap_index, valfmt='%d')
 
 # Cache to store pre-calculated results
 cache = {}
@@ -40,30 +48,27 @@ cache = {}
 def update(val):
   r = s_r.val
   i = s_i.val
-  key = (round(r, 4), round(i, 4))  # Round values for cache key
+  cmap_index = int(s_cmap.val)
+  cmap_name = cmap_list[cmap_index]
 
-  # Check if data for this range is already cached
-  if key in cache:
-    iterations = cache[key]
-  else:
-    # If not cached, calculate for higher resolution and store in cache
-    iterations = mandelbrot_plot_set(1000, 1000, c=complex(r, i))
-    cache[key] = iterations
-
+  c = complex(r,i)
   if set_type.get() == 'Mandelbrot':
+    iterations = mandelbrot_plot_set(1000, 1000, c=c)
     ax.set_title('Mandelbrot Set', fontsize=16, pad=20)
   else:
-    c = complex(r, i)
-    iterations = julia.julia_plot_set(1000, 1000, c=complex(r, i))
+    iterations = julia.julia_plot_set(1000, 1000, c=c)
     ax.set_title('Julia Set', fontsize=16, pad=20)
+    
   img.set_data(iterations)
+  img.set_cmap(cmap_name)
   fig.canvas.draw_idle()
 
-s_r.on_changed(update)
-s_i.on_changed(update)
+update_button_ax = plt.axes([0.8, 0.0, 0.1, 0.04])
+update_button = Button(update_button_ax, 'Update', color=axcolor, hovercolor='0.975')
+update_button.on_clicked(update)
 
 # Reset button
-resetax = plt.axes([0.8, 0.025, 0.1, 0.04])
+resetax = plt.axes([0.8, 0.05, 0.1, 0.04])
 button = Button(resetax, 'Reset', color=axcolor, hovercolor='0.975')
 
 def reset(event):
@@ -74,8 +79,8 @@ def reset(event):
 button.on_clicked(reset)
 
 # Set type button
-set_type = tk.StringVar(value='Mandelbrot')
-ax.set_title('Mandelbrot Set', fontsize=16, pad=20)
+set_type = tk.StringVar(value='Julia')
+ax.set_title('Julia Set', fontsize=16, pad=20)
 set_typeax = plt.axes([0.8, 0.1, 0.1, 0.04])
 set_type_button = Button(set_typeax, 'Change Set', color=axcolor, hovercolor='0.975')
 
